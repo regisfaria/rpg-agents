@@ -44,8 +44,18 @@ the `.env` file.
 
 ## Seed the rules database
 
-The rules agent reads a local ChromaDB knowledge base backed by SQLite. Seed it
-from the bundled D&D Basic Rules PDF before the first run:
+The rules agent reads a local ChromaDB knowledge base backed by SQLite. This
+setup is **required** before the Rules Agent can answer questions. It follows
+[Part 1: Setting Up the Rules Agent](https://catalog.us-east-1.prod.workshops.aws/workshops/e1493217-4bc7-42f4-87d9-e231acd743bc/en-US/5-a2a-integration#part-1:-setting-up-the-rules-agent)
+and the workshop's
+[Creating the Knowledge Base](https://catalog.us-east-1.prod.workshops.aws/workshops/e1493217-4bc7-42f4-87d9-e231acd743bc/en-US/5-a2a-integration#creating-the-knowledge-base)
+instructions.
+
+1. Download the
+   [D&D Basic Rules 2018 PDF](https://media.wizards.com/2018/dnd/downloads/DnD_BasicRules_2018.pdf).
+2. Keep the exact filename `DnD_BasicRules_2018.pdf` and place it in
+   `5_a2a_integration/utils/`, next to `create_knowledge_base.py`.
+3. Build the knowledge base:
 
 ```bash
 cd 5_a2a_integration/utils
@@ -55,7 +65,8 @@ cd ../..
 
 This creates
 `5_a2a_integration/utils/dnd_knowledge_base/chroma.sqlite3`. The generated
-database is ignored by Git and can be rebuilt with the same command.
+database and downloaded PDF are ignored by Git and can be rebuilt with the same
+command.
 
 Character data is stored separately by TinyDB in
 `5_a2a_integration/agents/character_agent/characters.json`; it does not require
