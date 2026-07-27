@@ -1,7 +1,13 @@
 import os
+import sys
+from pathlib import Path
+
 import chromadb
 from strands import Agent, tool
 from strands.multiagent.a2a import A2AServer
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model_config import build_model
 
 
 class RulesKnowledgeBase:
@@ -74,19 +80,18 @@ then provide a clear, concise answer with the page reference. Keep responses bri
 """
 
 def create_agent(context_id: str) -> Agent:
-    # TODO: Configure the agent with:
-    # - model: Optional
-    # - tools: List containing the query_dnd_rules tool
-    # - name: "Rules Agent"
-    # - description: DESCRIPTION
-    # - system_prompt: SYSTEM_PROMPT
-    pass
+    return Agent(
+        model=build_model(),
+        name="Rules Agent",
+        description=DESCRIPTION,
+        tools=[query_dnd_rules],
+        system_prompt=SYSTEM_PROMPT
+    )
 
-# TODO: Create an A2AServer instance with:
-# - agent_factory: The create_agent function defined above
-# - port: 8000 (Rules Agent port)
-a2a_server = None
+a2a_server = A2AServer(
+    agent_factory=create_agent,
+    port=8000
+)
 
 if __name__ == "__main__":
-    # TODO: Start the A2A server
-    pass
+    a2a_server.serve()

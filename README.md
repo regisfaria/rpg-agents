@@ -1,86 +1,110 @@
-# Once Upon Agentic AI: A Developer's Epic Journey into the Strands SDK
+# RPG Agents
 
+A small D&D application built with Strands Agents. A Game Master orchestrator
+uses two A2A agents—for rules and character management—and an MCP dice service.
 
-![Header Image](images/home.png)
+## Setup
 
-_"Roll for Initiative... in Python!"_
-
-# ------> [LINK TO THE AWS WORKSHOP](https://catalog.us-east-1.prod.workshops.aws/workshops/e1493217-4bc7-42f4-87d9-e231acd743bc/en-US/0-pre-requisites)
-
-Welcome, brave adventurer, to the ultimate Strands framework quest! This comprehensive workshop will transform you from a coding apprentice into a master of AI agent orchestration. Through five epic chapters, you'll learn to create, equip, and command digital companions that can think, act, and collaborate like a legendary adventuring party. Follow the instructions in the following [workshop](https://catalog.us-east-1.prod.workshops.aws/workshops/e1493217-4bc7-42f4-87d9-e231acd743bc/en-US/0-pre-requisites).
-
-## 🛠️ Setup
-
-Dependencies are declared in `pyproject.toml` — that's the single source of truth for both `uv` and plain `pip`.
-
-**Using [uv](https://docs.astral.sh/uv/) (recommended):**
+Install the dependencies from the repository root:
 
 ```bash
 uv sync
 ```
 
-Prefix workshop commands with `uv run`, e.g. `uv run python 1_strands_basics/simple_agent.py`.
-
-**Using pip:**
+Copy the environment template:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install .
+cp .env.example .env
 ```
 
-The workshop deliberately does not pin exact versions (no `uv.lock`, no `requirements.txt`), so both commands install against the latest compatible releases of the Strands SDK. If a chapter breaks against a newer release, please open an issue.
+All LLM configuration is read from `.env`. Set `LLM_PROVIDER` to switch every
+agent between `ollama` and `bedrock`.
 
-## 🌐 ️ The Complete Adventure Map
+For local Ollama, install and start Ollama, pull a model that supports tool
+calling, and configure it:
 
-Your journey through the realms of AI agents is carefully structured as a progressive quest. **Each chapter builds upon the previous one** - complete them in order to unlock the full power of Strands!
+```dotenv
+LLM_PROVIDER=ollama
+OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL_ID=qwen3:8b
+```
 
-### 🐉 [Chapter 0: An Unexpected Adventure](0_pre_requisites/)
-**Complete the prerequisites before going on an adventure!**
+For Amazon Bedrock, use either an AWS profile or AWS access keys in `.env`:
 
-### 🧙‍♂️ [Chapter 1: The Art of Agent Summoning](1_strands_basics/)
-**Master the fundamental ritual of agent creation**
-- Learn what Strands is and how it works
-- Summon your first AI companion
-- Configure models and system prompts
-- Understand the core concepts of agent development
+```dotenv
+LLM_PROVIDER=bedrock
+AWS_REGION=us-west-2
+BEDROCK_MODEL_ID=global.anthropic.claude-sonnet-4-6
+AWS_PROFILE=default
+```
 
-### ⚔️ [Chapter 2: The Adventurer's Arsenal](2_built_in_tools/)
-**Equip your agents with built-in magical tools**
-- Discover Strands' powerful built-in tool library
-- Learn how agents autonomously choose and use tools
-- Master web scraping and information gathering
-- Understand tool consent and safety mechanisms
+Alternatively, replace `AWS_PROFILE` with `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, and, when required, `AWS_SESSION_TOKEN`. Never commit
+the `.env` file.
 
-### 🔨 [Chapter 3: The Art of Magical Forging](3_custom_tools/)
-**Forge your own custom tools and enchantments**
-- Transform Python functions into agent tools
-- Create the legendary Dice of Destiny
-- Master the `@tool` decorator and documentation
-- Build domain-specific capabilities
+## Seed the rules database
 
-### 🌐 [Chapter 4: Planar Portals - MCP Integration](4_mcp_integration/)
-**Connect to external realms through Model Context Protocol**
-- Build and deploy MCP servers
-- Create MCP clients for agent integration
-- Understand distributed tool architectures
-- Master external service connections
+The rules agent reads a local ChromaDB knowledge base backed by SQLite. Seed it
+from the bundled D&D Basic Rules PDF before the first run:
 
-### 🏰 [Chapter 5: The Grand Alliance - A2A Mastery](5_a2a_integration/)
-**Command multiple agents in perfect harmony**
-- Build a complete multi-agent D&D system
-- Master Agent-to-Agent (A2A) communication
-- Orchestrate specialized agents working together
-- Create complex distributed AI applications
+```bash
+cd 5_a2a_integration/utils
+uv run python create_knowledge_base.py
+cd ../..
+```
 
-### 🎲 The Adventure Never Ends...
+This creates
+`5_a2a_integration/utils/dnd_knowledge_base/chroma.sqlite3`. The generated
+database is ignored by Git and can be rebuilt with the same command.
 
-Remember, the most epic adventures are the ones you create yourself. Whether you're building the next great AI application or just exploring the boundaries of what's possible, you now have the tools and knowledge to make it happen.
+Character data is stored separately by TinyDB in
+`5_a2a_integration/agents/character_agent/characters.json`; it does not require
+SQLite seeding.
 
-_May your agents be wise, your tools be sharp, and your code compile on the first try!_ 🎲✨
+## Run the application
 
----
+Open four terminals from the repository root and run one service in each.
 
-**"The best way to predict the future is to build the agents that will create it."** - Modern Developer Wisdom
+Terminal 1 — dice roll MCP service (`:8080`):
 
-_Happy coding, Agent Master! 🐉⚔️🧙‍♂️_
+```bash
+cd 4_mcp_integration
+uv run python dice_roll_mcp_server.py
+```
+
+Terminal 2 — rules A2A agent (`:8000`):
+
+```bash
+cd 5_a2a_integration/agents/rules_agent
+uv run python rules_agent.py
+```
+
+Terminal 3 — character A2A agent (`:8001`):
+
+```bash
+cd 5_a2a_integration/agents/character_agent
+uv run python character_agent.py
+```
+
+Terminal 4 — Game Master orchestrator API (`:8009`):
+
+```bash
+cd 5_a2a_integration/agents/gamemaster_orchestrator
+uv run python gamemaster_orchestrator.py
+```
+
+Send a game request to the orchestrator:
+
+```bash
+curl -X POST http://localhost:8009/inquire \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"Start a short adventure for a new character."}'
+```
+
+## Client UI
+
+The UI is maintained separately on the
+[`client`](https://github.com/regisfaria/rpg-agents/tree/client) branch.
+
+The known-stable agent implementation is available on the
+[`stable-v1`](https://github.com/regisfaria/rpg-agents/tree/stable-v1) branch.

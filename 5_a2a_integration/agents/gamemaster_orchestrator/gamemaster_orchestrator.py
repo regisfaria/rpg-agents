@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -11,6 +12,9 @@ from strands import Agent
 from strands.tools.mcp import MCPClient
 from mcp.client.streamable_http import streamablehttp_client
 from strands_tools.a2a_client import A2AClientToolProvider
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model_config import build_model
 
 app = FastAPI(title="D&D Game Master API")
 origins = ["*"]
@@ -84,17 +88,18 @@ class StoryOutput(BaseModel):
     dice_rolls: List[DiceOutput] = Field(default=[], description="List of dice rolls with dice_type, result, and reason")
 
 try:
-    # TODO: Create MCP Client for dice rolling service
-    # Initialize MCPClient with a lambda that returns streamablehttp_client("http://localhost:8080/mcp")
-    mcp_client = None
+    mcp_client = MCPClient(lambda: streamablehttp_client("http://localhost:8080/mcp/"))
 
-    # TODO: Create the A2A client with the A2AClientToolProvider and pass the list of the known agent urls
-    a2a_client = None
+    a2a_client = A2AClientToolProvider(known_agent_urls=[
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8001",
+    ])
 
     agent = Agent(
+        model=build_model(),
         system_prompt=SYSTEM_PROMPT,
-        # TODO: Create the gamemaster agent with both A2A and MCP tools
-        # TODO: Force the response to use the StoryOutput model
+        tools=[mcp_client] + a2a_client.tools,
+        structured_output_model=StoryOutput
     )
 except Exception as e:
     print(f"Error occurred: {str(e)}")

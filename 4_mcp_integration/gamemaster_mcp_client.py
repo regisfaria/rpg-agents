@@ -1,17 +1,21 @@
-# TODO: Import Agent, MCPClient and streamablehttp_client
+from mcp.client.streamable_http import streamablehttp_client
+from strands import Agent
+from strands.tools.mcp.mcp_client import MCPClient
 
 def main():
     # Connect to the dice roll MCP server
     print("\nConnecting to D&D Dice Roll MCP Server...")
-    # TODO: Create a streamable http MCPClient connecting to "http://localhost:8080/mcp"
+
     
     try:
+        mcp_client = MCPClient(lambda: streamablehttp_client("http://localhost:8080/mcp/"))
+
         # Create the gamemaster agent with access to dice rolling
-        gamemaster = Agent(
+        game_master = Agent(
             system_prompt="""You are Lady Luck, the mystical keeper of dice and fortune in D&D adventures.
             You speak with theatrical flair and always announce dice rolls with appropriate drama.
-            You know all about D&D mechanics, always use the appropriate tools when applicable - never make up results!"""
-            # TODO: Add the MCP tool to the gamemaster agent
+            You know all about D&D mechanics, always use the appropriate tools when applicable - never make up results!""",
+            tools=[mcp_client]
         )
         
         # Start interactive session
@@ -26,7 +30,7 @@ def main():
                 break
             
             print("\n🎲 Rolling the dice of fate...\n")
-            gamemaster(user_input)
+            game_master(user_input)
                 
     except Exception as e:
         print(f"❌ Connection failed: {e}")
